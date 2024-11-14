@@ -32,6 +32,13 @@ class PyBytesIO:
 
 class TestSendfile:
     def test_send_file(self, app, req_ctx):
+        """Test sending a file using Flask's send_file function.
+
+        This test verifies that the send_file function correctly sends a file
+        with the expected mimetype and that the file's data matches the expected
+        content. It also checks that the direct_passthrough attribute is set
+        correctly.
+        """
         rv = flask.send_file("static/index.html")
         assert rv.direct_passthrough
         assert rv.mimetype == "text/html"
@@ -43,6 +50,12 @@ class TestSendfile:
         rv.close()
 
     def test_static_file(self, app, req_ctx):
+        """Test sending static files with different cache settings.
+
+        This test checks the behavior of sending static files with and without
+        a configured cache max_age. It verifies that the cache control headers
+        are set correctly based on the app's configuration and custom logic.
+        """
         # Default max_age is None.
 
         # Test with static file handler.
@@ -90,6 +103,12 @@ class TestSendfile:
             rv.close()
 
     def test_send_from_directory(self, app, req_ctx):
+        """Test sending a file from a directory using send_from_directory.
+
+        This test verifies that the send_from_directory function correctly
+        sends a file from a specified directory and that the file's content
+        matches the expected data.
+        """
         app.root_path = os.path.join(
             os.path.dirname(__file__), "test_apps", "subdomaintestmodule"
         )
@@ -101,6 +120,11 @@ class TestSendfile:
 
 class TestUrlFor:
     def test_url_for_with_anchor(self, app, req_ctx):
+        """Test URL generation with an anchor.
+
+        This test verifies that the url_for function correctly generates a URL
+        with an anchor component, ensuring that the anchor is properly encoded.
+        """
         @app.route("/")
         def index():
             return "42"
@@ -108,6 +132,11 @@ class TestUrlFor:
         assert flask.url_for("index", _anchor="x y") == "/#x%20y"
 
     def test_url_for_with_scheme(self, app, req_ctx):
+        """Test URL generation with a specified scheme.
+
+        This test checks that the url_for function generates an external URL
+        with the specified scheme, ensuring that the scheme is correctly applied.
+        """
         @app.route("/")
         def index():
             return "42"
@@ -118,6 +147,11 @@ class TestUrlFor:
         )
 
     def test_url_for_with_scheme_not_external(self, app, req_ctx):
+        """Test URL generation with a scheme without external flag.
+
+        This test verifies that specifying a scheme without the external flag
+        raises a ValueError, as the scheme implies an external URL.
+        """
         app.add_url_rule("/", endpoint="index")
 
         # Implicit external with scheme.
@@ -129,6 +163,12 @@ class TestUrlFor:
             flask.url_for("index", _scheme="https", _external=False)
 
     def test_url_for_with_alternating_schemes(self, app, req_ctx):
+        """Test URL generation with alternating schemes.
+
+        This test checks that the url_for function can switch between different
+        schemes when generating URLs, ensuring that the scheme is applied correctly
+        each time.
+        """
         @app.route("/")
         def index():
             return "42"
@@ -141,6 +181,12 @@ class TestUrlFor:
         assert flask.url_for("index", _external=True) == "http://localhost/"
 
     def test_url_with_method(self, app, req_ctx):
+        """Test URL generation with specific HTTP methods.
+
+        This test verifies that the url_for function can generate URLs for
+        endpoints with specific HTTP methods, ensuring that the correct URL
+        is generated based on the method.
+        """
         from flask.views import MethodView
 
         class MyView(MethodView):
@@ -162,6 +208,12 @@ class TestUrlFor:
         assert flask.url_for("myview", _method="POST") == "/myview/create"
 
     def test_url_for_with_self(self, app, req_ctx):
+        """Test URL generation with 'self' as a variable part.
+
+        This test checks that the url_for function can handle 'self' as a
+        variable part in the URL, ensuring that it is correctly replaced with
+        the provided value.
+        """
         @app.route("/<self>")
         def index(self):
             return "42"
@@ -170,12 +222,22 @@ class TestUrlFor:
 
 
 def test_redirect_no_app():
+    """Test redirect function without an app context.
+
+    This test verifies that the redirect function can be used without an
+    application context and correctly sets the location and status code.
+    """
     response = flask.redirect("https://localhost", 307)
     assert response.location == "https://localhost"
     assert response.status_code == 307
 
 
 def test_redirect_with_app(app):
+    """Test redirect function with an app context.
+
+    This test checks that the redirect function respects the app's custom
+    redirect logic when used within an application context.
+    """
     def redirect(location, code=302):
         raise ValueError
 
@@ -186,6 +248,11 @@ def test_redirect_with_app(app):
 
 
 def test_abort_no_app():
+    """Test abort function without an app context.
+
+    This test verifies that the abort function raises the correct exceptions
+    when used without an application context.
+    """
     with pytest.raises(werkzeug.exceptions.Unauthorized):
         flask.abort(401)
 
@@ -194,6 +261,11 @@ def test_abort_no_app():
 
 
 def test_app_aborter_class():
+    """Test custom aborter class in a Flask app.
+
+    This test checks that a Flask app can use a custom aborter class, ensuring
+    that the app's aborter is an instance of the specified class.
+    """
     class MyAborter(werkzeug.exceptions.Aborter):
         pass
 
@@ -205,6 +277,11 @@ def test_app_aborter_class():
 
 
 def test_abort_with_app(app):
+    """Test abort function with a custom error code in an app context.
+
+    This test verifies that the abort function can handle custom error codes
+    when used within an application context, raising the appropriate exception.
+    """
     class My900Error(werkzeug.exceptions.HTTPException):
         code = 900
 
@@ -226,6 +303,12 @@ class TestNoImports:
     """
 
     def test_name_with_import_error(self, modules_tmp_path):
+        """Test Flask app creation with an import error.
+
+        This test verifies that creating a Flask app with a module that raises
+        an import error does not cause the app creation to fail, ensuring that
+        Flask does not import the module during initialization.
+        """
         (modules_tmp_path / "importerror.py").write_text("raise NotImplementedError()")
         try:
             flask.Flask("importerror")
@@ -235,6 +318,11 @@ class TestNoImports:
 
 class TestStreaming:
     def test_streaming_with_context(self, app, client):
+        """Test streaming response with request context.
+
+        This test verifies that a streaming response can access the request
+        context, ensuring that request data is available during streaming.
+        """
         @app.route("/")
         def index():
             def generate():
@@ -248,6 +336,11 @@ class TestStreaming:
         assert rv.data == b"Hello World!"
 
     def test_streaming_with_context_as_decorator(self, app, client):
+        """Test streaming response with context as a decorator.
+
+        This test checks that the stream_with_context decorator allows a
+        generator function to access the request context during streaming.
+        """
         @app.route("/")
         def index():
             @flask.stream_with_context
@@ -262,6 +355,11 @@ class TestStreaming:
         assert rv.data == b"Hello World!"
 
     def test_streaming_with_context_and_custom_close(self, app, client):
+        """Test streaming response with custom close method.
+
+        This test verifies that a streaming response can use a custom close
+        method, ensuring that the close method is called after streaming.
+        """
         called = []
 
         class Wrapper:
@@ -293,6 +391,11 @@ class TestStreaming:
         assert called == [42]
 
     def test_stream_keeps_session(self, app, client):
+        """Test streaming response retains session data.
+
+        This test checks that a streaming response retains access to session
+        data, ensuring that session modifications persist during streaming.
+        """
         @app.route("/")
         def index():
             flask.session["test"] = "flask"
@@ -319,10 +422,22 @@ class TestHelpers:
         ],
     )
     def test_get_debug_flag(self, monkeypatch, debug, expect):
+        """Test retrieval of the Flask debug flag from environment.
+
+        This test verifies that the get_debug_flag function correctly retrieves
+        the Flask debug flag from the environment, interpreting various string
+        representations of boolean values.
+        """
         monkeypatch.setenv("FLASK_DEBUG", debug)
         assert get_debug_flag() == expect
 
     def test_make_response(self):
+        """Test creation of a response object.
+
+        This test checks that the make_response function creates a response
+        object with the expected status code and mimetype, and that it can
+        handle different types of input data.
+        """
         app = flask.Flask(__name__)
         with app.test_request_context():
             rv = flask.helpers.make_response()
@@ -336,6 +451,12 @@ class TestHelpers:
 
     @pytest.mark.parametrize("mode", ("r", "rb", "rt"))
     def test_open_resource(self, mode):
+        """Test opening a resource file in various modes.
+
+        This test verifies that the open_resource function can open a resource
+        file in different read modes, ensuring that the file's content is
+        correctly read.
+        """
         app = flask.Flask(__name__)
 
         with app.open_resource("static/index.html", mode) as f:
@@ -343,6 +464,12 @@ class TestHelpers:
 
     @pytest.mark.parametrize("mode", ("w", "x", "a", "r+"))
     def test_open_resource_exceptions(self, mode):
+        """Test exceptions raised by open_resource with invalid modes.
+
+        This test checks that the open_resource function raises a ValueError
+        when attempting to open a resource file in write or append modes, which
+        are not supported.
+        """
         app = flask.Flask(__name__)
 
         with pytest.raises(ValueError):
